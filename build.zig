@@ -12,7 +12,12 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
 
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
     _ = b.addModule("small_array_list", .{
         .root_source_file = b.path(root_source_file),
+        .target = target,
+        .optimize = optimize,
     });
 }
