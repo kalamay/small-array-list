@@ -8,23 +8,39 @@ the two as needed. See the [Small Capacity Limit](#small-capacity-limit) for
 details on this storage mechanism.
 
 ```zig
+// We'll just use SmallArrayList for this example, but there are variants
+// that allow further parameterization.
+const SmallArrayList = @import("small_array_list").SmallArrayList;
+
+// Setup whichever allocator you'd like to use.
+var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+defer arena.deinit();
+const allocator = arena.allocator();
+
 var list: SmallArrayList(i32) = .empty;
 defer list.deinit(allocator);
 
-list.append(allocator, 1);
-list.append(allocator, 2);
-list.append(allocator, 3);
+// Append works just like the std.array_list.ArrayListUnmanaged append.
+try list.append(allocator, 1);
 
-std.debug.print("len={} capacity={}\n", .{ list.len, list.capacity });
-// On 64-bit systems, this will be: len=3 capacity=4
+// Nearly all of the standard library methods are available.
+var many = try list.addManyAsArray(allocator, 2);
+many[0] = 2;
+many[1] = 3;
 
+// Unlike ArrayList, items cannot be accessed directly as a slice.
 for (list.items()) |item| {
-    std.debug.print("item={}\n", .{ item });
+    std.debug.print("item={}\n", .{item});
 }
 
+// You can see if the SmallArrayList is using an allocation or not.
 if (!list.hasAllocation()) {
     std.debug.print("no allocations!\n", .{});
 }
+
+// Unlike ArrayList, len is a top-level field.
+// On 64-bit systems, this will be: len=3 capacity=4
+std.debug.print("len={} capacity={}\n", .{ list.len, list.capacity });
 ```
 
 > [!IMPORTANT]
@@ -33,6 +49,52 @@ if (!list.hasAllocation()) {
 >
 > 1. To get the number of items in the list, use `list.len` instead of `list.items.len`.
 > 1. To get the items of in the list, use `list.items()` instead of `list.items`.
+
+## Installing
+
+First, add the dependency to your `build.zig.zon`:
+
+```sh
+zig fetch --save git+https://github.com/kalamay/small-array-list#v0.1.1
+```
+
+Next add the dependecy to your `build.zig`:
+
+```zig
+const small_array_list_mod = b.dependency("small_array_list", .{
+    .target = target,
+    .optimize = optimize,
+}).module("small_array_list");
+
+exe_mod.addImport("small_array_list", small_array_list_mod);
+// or lib_mod, or any other module
+```
+
+Now you can import the library:
+
+```zig
+const small_array_list = @import("small_array_list");
+```
+
+### Using a Different Name
+
+If you'd like to use a different name within your project, you can choose a
+different import name for the module:
+
+```zig
+const small_array_list_mod = b.dependency("small_array_list", .{
+    .target = target,
+    .optimize = optimize,
+}).module("small_array_list");
+
+exe_mod.addImport("array", small_array_list_mod);
+```
+
+And then you'd be able to import it as `"array"`:
+
+```zig
+const array = @import("array");
+```
 
 ## Small Capacity Limit
 
