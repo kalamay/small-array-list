@@ -120,11 +120,6 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
         pub const Slice = SliceType;
         pub const SliceConst = SliceConstType;
 
-        /// Initialized an empty SmallArrayList. Deinitialize with `deinit`.
-        pub fn init() Self {
-            return empty;
-        }
-
         /// Initialize with capacity to hold `num` elements.
         /// The resulting capacity will equal `num` exactly.
         /// Deinitialize with `deinit`.
