@@ -644,6 +644,47 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
             self.as.slice = new_mem;
             self.capacity = new_capacity;
         }
+
+        pub const WriterContext = struct {
+            self: *Self,
+            allocator: Allocator,
+        };
+
+        pub const Writer = if (T != u8)
+            @compileError("The Writer interface is only defined for SmallArrayList(u8) " ++
+                "but the given type is SmallArrayList(" ++ @typeName(T) ++ ")")
+        else
+            std.io.Writer(WriterContext, Allocator.Error, appendWrite);
+
+        /// Initializes a Writer which will append to the list.
+        pub fn writer(self: *Self, gpa: Allocator) Writer {
+            return .{ .context = .{ .self = self, .allocator = gpa } };
+        }
+
+        /// Same as `append` except it returns the number of bytes written,
+        /// which is always the same as `m.len`. The purpose of this function
+        /// existing is to match `std.io.Writer` API.
+        /// Invalidates element pointers if additional memory is needed.
+        fn appendWrite(context: WriterContext, m: []const u8) Allocator.Error!usize {
+            try context.self.appendSlice(context.allocator, m);
+            return m.len;
+        }
+
+        pub const FixedWriter = std.io.Writer(*Self, Allocator.Error, appendWriteFixed);
+
+        /// Initializes a Writer which will append to the list but will return
+        /// `error.OutOfMemory` rather than increasing capacity.
+        pub fn fixedWriter(self: *Self) FixedWriter {
+            return .{ .context = self };
+        }
+
+        /// The purpose of this function existing is to match `std.io.Writer` API.
+        fn appendWriteFixed(self: *Self, m: []const u8) error{OutOfMemory}!usize {
+            const available_capacity = self.capacity - self.len;
+            if (m.len > available_capacity) return error.OutOfMemory;
+            self.appendSliceAssumeCapacity(m);
+            return m.len;
+        }
     };
 }
 
@@ -1179,4 +1220,31 @@ test "sized" {
 
     try testing.expect(list1.hasAllocation());
     try testing.expect(!list2.hasAllocation());
+}
+
+test "SmallArrayList(u8) implements writer" {
+    const a = testing.allocator;
+
+    {
+        var buffer: SmallArrayList(u8) = .empty;
+        defer buffer.deinit(a);
+
+        const x: i32 = 42;
+        const y: i32 = 1234;
+        try buffer.writer(a).print("x: {}\ny: {}\n", .{ x, y });
+
+        try testing.expectEqualSlices(u8, "x: 42\ny: 1234\n", buffer.items());
+    }
+    {
+        var list: SmallArrayListAligned(u8, 2) = .empty;
+        defer list.deinit(a);
+
+        const writer = list.writer(a);
+        try writer.writeAll("a");
+        try writer.writeAll("bc");
+        try writer.writeAll("d");
+        try writer.writeAll("efg");
+
+        try testing.expectEqualSlices(u8, "abcdefg", list.items());
+    }
 }
