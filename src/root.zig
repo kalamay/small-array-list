@@ -725,14 +725,14 @@ test "init" {
 test "initCapacity" {
     {
         const a = testing.allocator;
-        var list = try SmallArrayList(i8).initCapacity(a, 200);
+        var list = try SmallArrayList(u8).initCapacity(a, 200);
         defer list.deinit(a);
         try testing.expect(list.len == 0);
         try testing.expect(list.capacity >= 200);
     }
     {
         const a = testing.allocator;
-        var list = try SmallArrayListSized(i8, 8).initCapacity(a, 6);
+        var list = try SmallArrayListSized(u8, 8).initCapacity(a, 6);
         try testing.expect(list.len == 0);
         try testing.expect(list.capacity >= 6);
         try testing.expect(!list.hasAllocation());
@@ -839,6 +839,20 @@ test "basic" {
 
     try testing.expect(list.pop() == 42);
     try testing.expect(list.pop() == 33);
+}
+
+test "appendSlice" {
+    const a = testing.allocator;
+    var list: SmallArrayList(u8) = .empty;
+    defer list.deinit(a);
+
+    try list.appendSlice(a, "abcdefg");
+    try testing.expect(!list.hasAllocation());
+    try list.appendSlice(a, "hijklmn");
+    try testing.expect(!list.hasAllocation());
+    try list.appendSlice(a, "opqrstu");
+    try testing.expect(list.hasAllocation());
+    try testing.expectEqualStrings("abcdefghijklmnopqrstu", list.items());
 }
 
 test "appendNTimes" {
@@ -1222,6 +1236,41 @@ test "sized" {
     try testing.expect(!list2.hasAllocation());
 }
 
+test "expand and shrink" {
+    const List = SmallArrayList(u8);
+    var list: List = .empty;
+    try testing.expectEqual(list.len, 0);
+    try testing.expectEqual(list.capacity, List.smallCapacity);
+
+    list.expandToCapacity();
+    try testing.expectEqual(list.len, List.smallCapacity);
+    try testing.expectEqual(list.capacity, List.smallCapacity);
+
+    list.shrinkRetainingCapacity(4);
+    try testing.expectEqual(list.len, 4);
+    try testing.expectEqual(list.capacity, List.smallCapacity);
+
+    list.clearRetainingCapacity();
+    try testing.expectEqual(list.len, 0);
+    try testing.expectEqual(list.capacity, List.smallCapacity);
+}
+
+test "ensureTotalCapacity" {
+    const List = SmallArrayList(u8);
+    const a = testing.allocator;
+    var list: List = .empty;
+
+    try list.ensureTotalCapacity(a, 100);
+
+    try testing.expectEqual(list.len, 0);
+    try testing.expectEqual(list.capacity, 128);
+
+    list.clearAndFree(a);
+
+    try testing.expectEqual(list.len, 0);
+    try testing.expectEqual(list.capacity, List.smallCapacity);
+}
+
 test "SmallArrayList(u8) implements writer" {
     const a = testing.allocator;
 
@@ -1247,4 +1296,15 @@ test "SmallArrayList(u8) implements writer" {
 
         try testing.expectEqualSlices(u8, "abcdefg", list.items());
     }
+}
+
+test "SmallArrayList(u8) implements fixedWriter" {
+    var buffer: SmallArrayList(u8) = .empty;
+
+    const x: i32 = 42;
+    const y: i32 = 1234;
+    try buffer.fixedWriter().print("x: {}\ny: {}\n", .{ x, y });
+
+    try testing.expectEqualSlices(u8, "x: 42\ny: 1234\n", buffer.items());
+    try testing.expectError(error.OutOfMemory, buffer.fixedWriter().print("x: {}\ny: {}\n", .{ x, y }));
 }
