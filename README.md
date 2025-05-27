@@ -55,7 +55,7 @@ std.debug.print("len={} capacity={}\n", .{ list.len, list.capacity });
 First, add the dependency to your `build.zig.zon`:
 
 ```sh
-zig fetch --save git+https://github.com/kalamay/small-array-list#v0.1.1
+zig fetch --save git+https://github.com/kalamay/small-array-list#v0.2.0
 ```
 
 Next add the dependecy to your `build.zig`:
@@ -103,7 +103,7 @@ native machine word size. Because a zig slice requires two machine words for
 storing it's `ptr` and `len`, this space can be used for direct item storage
 instead until the small capacity is exceeded. For any given type `T`, the
 small array list can store up to `2*@sizeOf(usize) / @sizeOf(T)` items before
-requiring any internal allocation. 
+requiring any internal allocation.
 
 For example on a 64-bit processor will print out `smallCapacity=4 sizeOf=24`:
 
