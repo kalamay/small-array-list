@@ -124,7 +124,7 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
         /// The resulting capacity will equal `num` exactly.
         /// Deinitialize with `deinit`.
         pub fn initCapacity(gpa: Allocator, num: usize) Allocator.Error!Self {
-            var self = Self{};
+            var self = Self.empty;
             try self.ensureTotalCapacityPrecise(gpa, num);
             return self;
         }
