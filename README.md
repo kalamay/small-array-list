@@ -96,6 +96,25 @@ And then you'd be able to import it as `"array"`:
 const array = @import("array");
 ```
 
+## Why This Library
+
+The standard library already includes `std.ArrayList`. In many cases, this is
+the ideal choice. This is especially so if you know you are going to be storing
+many items in the array. Alternatively, if you know you will only be storing
+a limited number of items, using zig's array types (i.e. `[8]i32`) is sensible.
+
+However, there are cases where you are most likely going to be storing few
+items, but need the flexibility to grow past the fixed limit that arrays
+provide. That is, you will generally need the compactness of a zig array,
+but you need the option to grow like a `std.ArrayList`.
+
+This is where `SmallArrayList` comes in. In the low item count case, you can
+stay allocation-free, like a zig array. If item capacity needs to increase,
+however, you can still expand to support whatever size is needed. This can
+keep overall memory usage down for low-item array lists. Additionally, when
+the items are non-allocated, you gain a memory locality benefit as there is
+no pointer indirection.
+
 ## Small Capacity Limit
 
 The available small capacity limit is determined by the type stored and the
