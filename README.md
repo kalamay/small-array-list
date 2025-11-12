@@ -124,11 +124,11 @@ instead until the small capacity is exceeded. For any given type `T`, the
 small array list can store up to `2*@sizeOf(usize) / @sizeOf(T)` items before
 requiring any internal allocation.
 
-For example on a 64-bit processor will print out `smallCapacity=4 sizeOf=24`:
+For example on a 64-bit processor will print out `small_capacity=4 sizeOf=24`:
 
 ```zig
 const List = SmallArrayList(i32);
-std.debug.print("smallCapacity={} sizeOf={}\n", .{List.smallCapacity, @sizeOf(List)});
+std.debug.print("small_capacity={} sizeOf={}\n", .{List.small_capacity, @sizeOf(List)});
 ```
 
 The over size of a `SmallArrayList` is generally three machine words. This is
@@ -194,7 +194,7 @@ test "sizes" {
     defer list1.deinit(a);
     defer list2.deinit(a); // don't strictly need to deinit list2
 
-    for (0..List2.smallCapacity) |i| {
+    for (0..List2.small_capacity) |i| {
         try list1.append(a, @intCast(i));
         try list2.append(a, @intCast(i));
     }

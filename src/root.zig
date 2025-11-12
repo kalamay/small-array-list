@@ -83,15 +83,15 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
     const SliceType = if (alignment) |a| ([]align(a) T) else []T;
     const SliceConstType = if (alignment) |a| ([]align(a) const T) else []const T;
 
-    const arraySize = @max(defaultSmallCapacity(T), size);
+    const array_size = @max(defaultSmallCapacity(T), size);
 
     const Union = unchecked: {
         @setRuntimeSafety(false);
         break :unchecked if (alignment) |a| union {
-            array: [arraySize]T align(a),
+            array: [array_size]T align(a),
             slice: SliceType,
         } else union {
-            array: [arraySize]T,
+            array: [array_size]T,
             slice: SliceType,
         };
     };
@@ -101,7 +101,7 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
 
         // The maximum item count that may be stored in the SmallArrayList
         // without requiring any allocations.
-        pub const smallCapacity: Size = arraySize;
+        pub const small_capacity: Size = array_size;
 
         // Unchecked union of either an array or slice. The union uses the len field as
         // the discriminator. When `len` <= `size`, the `array` field is active,
@@ -112,7 +112,7 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
         len: Size = 0,
         /// How many T values this list can hold without allocating additional memory.
         /// Do not modify the value.
-        capacity: Size = smallCapacity,
+        capacity: Size = small_capacity,
 
         /// An SmallArrayList containing no elements.
         pub const empty: Self = .{};
@@ -146,7 +146,7 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
         /// Test if the small array list has an external allocation. Calls to
         /// `deinit` may be omitted if this is false.
         pub inline fn hasAllocation(self: *const Self) bool {
-            return self.capacity > smallCapacity;
+            return self.capacity > small_capacity;
         }
 
         /// Gets the items of the SmallArrayList.
@@ -542,13 +542,13 @@ pub fn SmallArrayListAlignedSized(comptime T: type, comptime alignment: ?u29, co
 
             const old_mem = self.entireSlice();
 
-            if (new_len <= smallCapacity) {
+            if (new_len <= small_capacity) {
                 if (self.hasAllocation()) {
                     @memcpy(self.as.array[0..new_len], old_mem[0..new_len]);
                     gpa.free(old_mem);
                 }
                 self.len = @truncate(new_len);
-                self.capacity = smallCapacity;
+                self.capacity = small_capacity;
                 return;
             }
 
@@ -784,7 +784,7 @@ test "clone" {
 test "size" {
     const List = SmallArrayList(i32);
 
-    try testing.expectEqual((@sizeOf(usize) * 2) / 4, List.smallCapacity);
+    try testing.expectEqual((@sizeOf(usize) * 2) / 4, List.small_capacity);
     try testing.expectEqual(3 * @sizeOf(usize), @sizeOf(List));
     try testing.expectEqual(2 * @sizeOf(List), @sizeOf([2]List));
 }
@@ -1227,7 +1227,7 @@ test "sized" {
     defer list1.deinit(a);
     // don't strictly need to deinit list2
 
-    for (0..@TypeOf(list2).smallCapacity) |i| {
+    for (0..@TypeOf(list2).small_capacity) |i| {
         try list1.append(a, @intCast(i));
         try list2.append(a, @intCast(i));
     }
@@ -1240,19 +1240,19 @@ test "expand and shrink" {
     const List = SmallArrayList(u8);
     var list: List = .empty;
     try testing.expectEqual(list.len, 0);
-    try testing.expectEqual(list.capacity, List.smallCapacity);
+    try testing.expectEqual(list.capacity, List.small_capacity);
 
     list.expandToCapacity();
-    try testing.expectEqual(list.len, List.smallCapacity);
-    try testing.expectEqual(list.capacity, List.smallCapacity);
+    try testing.expectEqual(list.len, List.small_capacity);
+    try testing.expectEqual(list.capacity, List.small_capacity);
 
     list.shrinkRetainingCapacity(4);
     try testing.expectEqual(list.len, 4);
-    try testing.expectEqual(list.capacity, List.smallCapacity);
+    try testing.expectEqual(list.capacity, List.small_capacity);
 
     list.clearRetainingCapacity();
     try testing.expectEqual(list.len, 0);
-    try testing.expectEqual(list.capacity, List.smallCapacity);
+    try testing.expectEqual(list.capacity, List.small_capacity);
 }
 
 test "ensureTotalCapacity" {
@@ -1268,7 +1268,7 @@ test "ensureTotalCapacity" {
     list.clearAndFree(a);
 
     try testing.expectEqual(list.len, 0);
-    try testing.expectEqual(list.capacity, List.smallCapacity);
+    try testing.expectEqual(list.capacity, List.small_capacity);
 }
 
 test "SmallArrayList(u8) implements writer" {
